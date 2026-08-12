@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ஜோதிட குறிப்புகள்</title>
+
+    <!-- PWA: manifest + theme -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#b45309">
+    <link rel="icon" href="icon-192.png" type="image/png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ஜோதிடம்">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts for Tamil -->
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Madurai:wght@400;600;700&family=Mukta+Malar:wght@400;600;700&family=Noto+Sans+Tamil:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase (compat SDK - works with plain <script> tags, no build step needed) -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-database-compat.js"></script>
+
+    <style>
+        body {
+            font-family: 'Hind Madurai', 'Noto Sans Tamil', sans-serif;
+            background-color: #fdfbf7;
+            color: #333333;
+        }
+
+        .tamil-text-editor, .formatted-text-content {
+            line-height: 1.8 !important;
+            font-size: 16px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .toolbar-btn {
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .toolbar-btn:hover {
+            background: #e2e8f0;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d97706;
+            border-radius: 3px;
+        }
+
+        /* PRINT STYLES - Fixes Center Alignment & Tamil Font Issues */
+        @media print {
+            @page {
+                margin: 15mm;
+                size: auto;
+            }
+
+            body * {
+                visibility: hidden;
+            }
+
+            body {
+                display: block !important;
+                background: white !important;
+            }
+
+            #viewModal, #viewModal * {
+                visibility: visible;
+            }
+
+            #viewModal {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+                display: block !important;
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            .modal-content-box {
+                max-height: none !important;
+                box-shadow: none !important;
+                border: none !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .pdf-export-container {
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+            }
+        }
+
+        .pdf-export-container {
+            font-family: 'Noto Sans Tamil', 'Hind Madurai', sans-serif;
+            color: #000;
+            background: #ffffff;
+            padding: 25px;
+            border: none !important;
+            box-shadow: none !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-amber-200">
+
+    <!-- App Header -->
+    <header class="bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700 text-white shadow-lg sticky top-0 z-50 no-print">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-12 h-12 rounded-full bg-amber-100 border-2 border-amber-300 flex items-center justify-center text-amber-800 font-bold shadow-md">
+                    <svg viewBox="0 0 64 64" class="w-8 h-8 fill-current text-amber-800">
+                        <path d="M32,4 C18,4 12,16 12,28 C12,38 18,44 24,46 C24,50 20,54 16,56 C24,58 32,56 36,48 C42,48 52,42 52,28 C52,16 46,4 32,4 Z M32,12 C36,12 38,16 38,20 C38,24 34,26 32,26 C30,26 26,24 26,20 C26,16 28,12 32,12 Z"/>
+                        <circle cx="32" cy="18" r="3" fill="#b45309"/>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <h1 class="text-2xl md:text-3xl font-extrabold tracking-wide drop-shadow-md text-amber-100 flex items-center gap-2">
+                    <span>✨</span> ஜோதிட குறிப்புகள் <span>✨</span>
+                </h1>
+                <p class="text-xs text-amber-200 mt-0.5">உங்கள் ஜோதிட ஆய்வுகள் மற்றும் ஜாதக பதிவேடு</p>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <div class="w-12 h-12 rounded-full bg-amber-100 border-2 border-amber-300 flex items-center justify-center text-amber-800 font-bold shadow-md">
+                    <svg viewBox="0 0 64 64" class="w-8 h-8 fill-current text-amber-800">
+                        <path d="M32,4 C18,4 12,16 12,28 C12,38 18,44 24,46 C24,50 20,54 16,56 C24,58 32,56 36,48 C42,48 52,42 52,28 C52,16 46,4 32,4 Z M32,12 C36,12 38,16 38,20 C38,24 34,26 32,26 C26,16 28,12 32,12 Z"/>
+                        <circle cx="32" cy="18" r="3" fill="#b45309"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <nav id="topNavBar" class="bg-amber-800/80 backdrop-blur border-t border-amber-600/50 py-2 px-4 no-print hidden">
+            <div class="max-w-5xl mx-auto flex items-center justify-between">
+                <button onclick="showPage('home')" class="px-3 py-1 bg-amber-100 text-amber-900 rounded-full font-semibold text-sm hover:bg-white transition-all shadow flex items-center gap-1">
+                    <i class="fa-solid fa-arrow-left"></i> முகப்பு பக்கம் (Home)
+                </button>
+                <span id="currentPageTitle" class="text-amber-100 font-semibold text-sm md:text-base"></span>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content Body -->
+    <main class="max-w-5xl mx-auto w-full p-4 flex-1">
+
+        <!-- HOME PAGE -->
+        <section id="page-home" class="py-6 space-y-8 no-print">
+            <div class="text-center max-w-xl mx-auto space-y-2">
+                <h2 class="text-xl md:text-2xl font-bold text-amber-900">வரவேற்கிறோம்!</h2>
+                <p class="text-gray-600 text-sm">கீழே உள்ள ஆப்ஷன்களில் இருந்து நீங்கள் பதிவு செய்ய விரும்பும் அல்லது தேட விரும்பும் பிரிவைத் தேர்ந்தெடுக்கவும்.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-3xl mx-auto">
+                <button onclick="showPage('birth')" class="group p-6 bg-amber-50/80 rounded-2xl shadow-md border border-amber-200 hover:border-amber-500 hover:shadow-xl transition-all duration-300 text-left flex items-start gap-4 transform hover:-translate-y-1">
+                    <div class="w-14 h-14 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center text-2xl group-hover:bg-amber-600 group-hover:text-white transition-colors shrink-0">
+                        <i class="fa-solid fa-baby"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-amber-950 group-hover:text-amber-700">பிறந்த குறிப்புகள்</h3>
+                        <p class="text-xs text-amber-800/80 mt-1">நபரின் பெயர், பிறந்த தேதி, நேரம், இடம் மற்றும் ஜாதகக் குறிப்புகளை சேமிக்க.</p>
+                    </div>
+                </button>
+
+                <button onclick="showPage('gochara')" class="group p-6 bg-purple-50/80 rounded-2xl shadow-md border border-purple-200 hover:border-purple-500 hover:shadow-xl transition-all duration-300 text-left flex items-start gap-4 transform hover:-translate-y-1">
+                    <div class="w-14 h-14 rounded-xl bg-purple-200 text-purple-900 flex items-center justify-center text-2xl group-hover:bg-purple-600 group-hover:text-white transition-colors shrink-0">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-purple-950 group-hover:text-purple-700">🔮 கோச்சாரக் குறிப்புகள்</h3>
+                        <p class="text-xs text-purple-800/80 mt-1">ஒவ்வொரு நபருக்குமான கிரக கோச்சார பலன்கள் மற்றும் தகவல்கள்.</p>
+                    </div>
+                </button>
+
+                <button onclick="showPage('research')" class="group p-6 bg-blue-50/80 rounded-2xl shadow-md border border-blue-200 hover:border-blue-500 hover:shadow-xl transition-all duration-300 text-left flex items-start gap-4 transform hover:-translate-y-1">
+                    <div class="w-14 h-14 rounded-xl bg-blue-200 text-blue-900 flex items-center justify-center text-2xl group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
+                        <i class="fa-solid fa-book-bookmark"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-blue-950 group-hover:text-blue-700">📚 ஆராய்ச்சி குறிப்புகள்</h3>
+                        <p class="text-xs text-blue-800/80 mt-1">தலைப்பு, நோய் வகை மற்றும் ஜோதிட ஆராய்ச்சி விதிகளை பதிவு செய்ய.</p>
+                    </div>
+                </button>
+
+                <button onclick="showPage('general')" class="group p-6 bg-emerald-50/80 rounded-2xl shadow-md border border-emerald-200 hover:border-emerald-500 hover:shadow-xl transition-all duration-300 text-left flex items-start gap-4 transform hover:-translate-y-1">
+                    <div class="w-14 h-14 rounded-xl bg-emerald-200 text-emerald-900 flex items-center justify-center text-2xl group-hover:bg-emerald-600 group-hover:text-white transition-colors shrink-0">
+                        <i class="fa-solid fa-note-sticky"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-emerald-950 group-hover:text-emerald-700">பொதுக் குறிப்புகள்</h3>
+                        <p class="text-xs text-emerald-800/80 mt-1">பொதுவான ஜோதிட விதிகளும் தகவல்களும் பதிவு செய்ய.</p>
+                    </div>
+                </button>
+            </div>
+        </section>
+
+        <!-- SECTION: BIRTH NOTES -->
+        <section id="page-birth" class="hidden space-y-6 p-4 md:p-6 bg-amber-50/50 rounded-3xl border border-amber-200 no-print">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-amber-100/70 p-4 rounded-xl border border-amber-300">
+                <div>
+                    <h2 class="text-xl font-bold text-amber-900"><i class="fa-solid fa-baby text-amber-700 mr-2"></i>பிறந்த குறிப்புகள்</h2>
+                    <p class="text-xs text-amber-800">ஜாதக விவரங்கள் மற்றும் குறிப்புகள் பதிவு</p>
+                </div>
+                <button onclick="openForm('birth')" class="w-full sm:w-auto px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg shadow transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-plus"></i> புதிய பதிவு சேர்க்க
+                </button>
+            </div>
+
+            <div class="relative max-w-lg">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-amber-500"></i>
+                <input type="text" id="search-birth" oninput="renderList('birth')" placeholder="🔎 பெயரால் தேடுங்கள்..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-sm text-sm bg-white">
+            </div>
+
+            <div id="list-birth" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </section>
+
+        <!-- SECTION: GOCHARA NOTES -->
+        <section id="page-gochara" class="hidden space-y-6 p-4 md:p-6 bg-purple-50/50 rounded-3xl border border-purple-200 no-print">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-purple-100/70 p-4 rounded-xl border border-purple-300">
+                <div>
+                    <h2 class="text-xl font-bold text-purple-900"><i class="fa-solid fa-wand-magic-sparkles text-purple-700 mr-2"></i>🔮 கோச்சாரக் குறிப்புகள்</h2>
+                    <p class="text-xs text-purple-800">நபர்களுக்கான கோச்சார விவரங்கள் பதிவு செய்ய</p>
+                </div>
+                <button onclick="openForm('gochara')" class="w-full sm:w-auto px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-plus"></i> புதிய கோச்சாரக் குறிப்பு சேர்க்க
+                </button>
+            </div>
+
+            <div class="relative max-w-lg">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-purple-500"></i>
+                <input type="text" id="search-gochara" oninput="renderList('gochara')" placeholder="🔎 பெயரால் தேடுங்கள்..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-sm text-sm bg-white">
+            </div>
+
+            <div id="list-gochara" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </section>
+
+        <!-- SECTION: RESEARCH NOTES -->
+        <section id="page-research" class="hidden space-y-6 p-4 md:p-6 bg-blue-50/50 rounded-3xl border border-blue-200 no-print">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-blue-100/70 p-4 rounded-xl border border-blue-300">
+                <div>
+                    <h2 class="text-xl font-bold text-blue-900"><i class="fa-solid fa-book-bookmark text-blue-700 mr-2"></i>📚 ஆராய்ச்சி குறிப்புகள்</h2>
+                    <p class="text-xs text-blue-800">ஆராய்ச்சி தலைப்பு மற்றும் நோய் விவரங்கள்</p>
+                </div>
+                <button onclick="openForm('research')" class="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-plus"></i> புதிய ஆராய்ச்சி குறிப்பு
+                </button>
+            </div>
+
+            <div class="relative max-w-lg">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-blue-500"></i>
+                <input type="text" id="search-research" oninput="renderList('research')" placeholder="🔎 தலைப்பு அல்லது முக்கிய வார்த்தை தேடுக..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm text-sm bg-white">
+            </div>
+
+            <div id="list-research" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </section>
+
+        <!-- SECTION: GENERAL NOTES -->
+        <section id="page-general" class="hidden space-y-6 p-4 md:p-6 bg-emerald-50/50 rounded-3xl border border-emerald-200 no-print">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-emerald-100/70 p-4 rounded-xl border border-emerald-300">
+                <div>
+                    <h2 class="text-xl font-bold text-emerald-900"><i class="fa-solid fa-note-sticky text-emerald-700 mr-2"></i>பொதுக் குறிப்புகள்</h2>
+                    <p class="text-xs text-emerald-800">ஜோதிடம் தொடர்பான பொது குறிப்புகள்</p>
+                </div>
+                <button onclick="openForm('general')" class="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-plus"></i> புதிய பொதுக் குறிப்பு
+                </button>
+            </div>
+
+            <div class="relative max-w-lg">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-emerald-500"></i>
+                <input type="text" id="search-general" oninput="renderList('general')" placeholder="🔎 தலைப்பு அல்லது வார்த்தையால் தேடுக..." class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm text-sm bg-white">
+            </div>
+
+            <div id="list-general" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </section>
+
+        <!-- RECORD ENTRY/EDIT MODAL FORM -->
+        <div id="formModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 overflow-y-auto no-print">
+            <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col my-auto border border-gray-200">
+                <div class="bg-gradient-to-r from-amber-700 to-amber-800 text-white px-5 py-3.5 flex justify-between items-center shrink-0">
+                    <h3 id="modalTitle" class="font-bold text-lg flex items-center gap-2"></h3>
+                    <button onclick="closeForm()" class="text-amber-200 hover:text-white p-1 rounded-full hover:bg-amber-600/50 transition">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                <form id="astrologyForm" onsubmit="saveRecord(event)" class="p-5 overflow-y-auto space-y-4 text-sm flex-1">
+                    <input type="hidden" id="field-id">
+                    <input type="hidden" id="field-category">
+
+                    <div id="field-group-name" class="space-y-1">
+                        <label class="font-semibold text-gray-700">பெயர் *</label>
+                        <input type="text" id="field-name" placeholder="எ.கா: ராஜா" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+                    </div>
+
+                    <div id="birth-fields-group" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="space-y-1">
+                            <label class="font-semibold text-gray-700">பிறந்த தேதி (DD/MM/YYYY) *</label>
+                            <input type="text" id="field-dob" placeholder="15/08/1990" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="font-semibold text-gray-700">பிறந்த நேரம் *</label>
+                            <div class="flex gap-1">
+                                <input type="text" id="field-time" placeholder="10:30" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+                                <select id="field-ampm" class="border border-gray-300 rounded-lg px-2 bg-gray-50 focus:ring-2 focus:ring-amber-500 outline-none font-semibold">
+                                    <option value="AM">AM</option>
+                                    <option value="PM">PM</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="font-semibold text-gray-700">பிறந்த இடம் *</label>
+                            <input type="text" id="field-place" placeholder="சென்னை" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div id="research-fields-group" class="space-y-3 hidden">
+                        <div class="space-y-1">
+                            <label class="font-semibold text-gray-700">ஆராய்ச்சி தலைப்பு *</label>
+                            <input type="text" id="field-title" placeholder="எ.கா: செவ்வாய் தோஷ விதிகள்" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="space-y-1">
+                                <label class="font-semibold text-gray-700">ஆராய்ச்சியாளர் / நபர் பெயர்</label>
+                                <input type="text" id="field-research-name" placeholder="பெயர்..." class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="font-semibold text-gray-700">நோய் வகை (தேவைப்பட்டால்)</label>
+                                <input type="text" id="field-disease" placeholder="எ.கா: இதயக் கோளாறு" class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="general-fields-group" class="space-y-1 hidden">
+                        <label class="font-semibold text-gray-700">குறிப்புத் தலைப்பு *</label>
+                        <input type="text" id="field-general-title" placeholder="தலைப்பை உள்ளிடவும்..." class="w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+                    </div>
+
+                    <div class="space-y-2 pt-2 border-t border-gray-200">
+                        <label class="font-semibold text-gray-700 flex justify-between items-center">
+                            <span>குறிப்புகள் (Plain Text / Formatted Notes)</span>
+                        </label>
+
+                        <div class="bg-gray-100 p-2 rounded-t-xl border border-gray-300 flex flex-wrap gap-2 items-center text-xs">
+                            <div class="flex items-center gap-1 bg-white p-1 rounded border border-gray-200">
+                                <i class="fa-solid fa-palette text-amber-700"></i>
+                                <span>நிறம்:</span>
+                                <input type="color" id="editor-text-color" onchange="applyStyle('foreColor', this.value)" class="w-6 h-6 border-0 cursor-pointer p-0 bg-transparent">
+                            </div>
+
+                            <div class="flex items-center gap-1 bg-white p-1 rounded border border-gray-200">
+                                <i class="fa-solid fa-highlighter text-amber-700"></i>
+                                <span>ஹைலைட்:</span>
+                                <input type="color" id="editor-bg-color" value="#ffffff" onchange="applyStyle('hiliteColor', this.value)" class="w-6 h-6 border-0 cursor-pointer p-0 bg-transparent">
+                            </div>
+
+                            <!-- FIX: updated with oninput -->
+                            <div class="flex items-center gap-1 bg-white p-1 rounded border border-gray-200">
+                                <span>அளவு:</span>
+                                <select oninput="applyFontSize(this.value)" class="outline-none bg-transparent font-semibold cursor-pointer">
+                                    <option value="12px">12px</option>
+                                    <option value="14px">14px</option>
+                                    <option value="16px" selected>16px</option>
+                                    <option value="18px">18px</option>
+                                    <option value="20px">20px</option>
+                                    <option value="24px">24px</option>
+                                    <option value="28px">28px</option>
+                                    <option value="32px">32px</option>
+                                </select>
+                            </div>
+
+                            <label class="toolbar-btn bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 cursor-pointer">
+                                <i class="fa-solid fa-font"></i> TTF பாண்ட் சேர்
+                                <input type="file" id="font-file-input" accept=".ttf,.woff,.otf" onchange="addCustomFont(event)" class="hidden">
+                            </label>
+
+                            <div class="flex items-center gap-1 bg-white p-1 rounded border border-gray-200">
+                                <span>பாண்ட்:</span>
+                                <select id="font-family-select" onchange="applyFontFamily(this.value)" class="outline-none bg-transparent font-semibold max-w-[120px]">
+                                    <option value="Hind Madurai">Hind Madurai</option>
+                                    <option value="Noto Sans Tamil">Noto Sans</option>
+                                    <option value="Mukta Malar">Mukta Malar</option>
+                                </select>
+                                <button type="button" onclick="deleteSelectedCustomFont()" title="தேர்ந்தெடுக்கப்பட்ட பாண்ட்டை நீக்கு" class="text-red-500 hover:text-red-700 px-1 font-bold">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="field-content" contenteditable="true" class="tamil-text-editor min-h-[160px] p-3 border border-t-0 border-gray-300 rounded-b-xl focus:outline-none focus:ring-1 focus:ring-amber-500 bg-white"></div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                        <button type="button" onclick="closeForm()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 font-semibold">ரத்து செய்</button>
+                        <button type="submit" class="px-6 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow transition flex items-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> சேமிக்க
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- VIEW & PRINT / PDF MODAL -->
+        <div id="viewModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 overflow-y-auto">
+            <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col my-auto border border-gray-200 modal-content-box">
+                <div class="no-print bg-gray-800 text-white px-5 py-3 flex justify-between items-center shrink-0">
+                    <h3 class="font-bold text-sm md:text-base flex items-center gap-2">
+                        <i class="fa-solid fa-file-lines text-amber-400"></i> குறிப்புகள் விவரம்
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <button onclick="downloadPDF()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded shadow flex items-center gap-1 transition">
+                            <i class="fa-solid fa-print"></i> ⬇️ Download PDF / அச்சிடு
+                        </button>
+                        <button onclick="closeViewModal()" class="text-gray-300 hover:text-white p-1 rounded-full hover:bg-gray-700">
+                            <i class="fa-solid fa-xmark text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-6 overflow-y-auto flex-1 bg-white" id="printableArea">
+                    <div id="pdf-content-box" class="pdf-export-container"></div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- App Footer -->
+    <footer class="bg-amber-900 text-amber-200 text-center py-4 text-xs no-print border-t border-amber-800 mt-8">
+        <p>© ஜோதிட குறிப்புகள் - அனைத்து பதிவுகளும் Firebase-ல் பாதுகாப்பாக சேமிக்கப்படும்.</p>
+        <p id="syncStatus" class="text-[10px] text-amber-200 mt-1">🔄 இணைக்கிறது...</p>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        const STORAGE_KEY = 'astrology_notes_data_v1';
+        let records = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+            birth: [],
+            gochara: [],
+            research: [],
+            general: []
+        };
+
+        let customFonts = [];
+        let currentPage = 'home';
+
+        // ===== Firebase (Realtime Database) sync =====
+        const firebaseConfig = {
+            apiKey: "AIzaSyDmvmJ8QXVrML9ZrwPu0dcfgOW45dUj1Yo",
+            authDomain: "work-b4421.firebaseapp.com",
+            databaseURL: "https://work-b4421-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "work-b4421",
+            storageBucket: "work-b4421.firebasestorage.app",
+            messagingSenderId: "243636552570",
+            appId: "1:243636552570:web:f607858b9503dc4ffe8cc3"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const notesRef = firebase.database().ref('astrologyNotes');
+        let syncStatusEl = null;
+
+        function setSyncStatus(text, ok) {
+            if (!syncStatusEl) syncStatusEl = document.getElementById('syncStatus');
+            if (!syncStatusEl) return;
+            syncStatusEl.textContent = text;
+            syncStatusEl.className = ok
+                ? 'text-[10px] text-emerald-100'
+                : 'text-[10px] text-amber-200';
+        }
+
+        // Live sync: whenever the data changes on Firebase (from this device or any
+        // other device signed into the same project), update the local view.
+        notesRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            records = data || { birth: [], gochara: [], research: [], general: [] };
+            ['birth', 'gochara', 'research', 'general'].forEach((c) => {
+                if (!records[c]) records[c] = [];
+            });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+            setSyncStatus('☁️ Firebase-உடன் இணைந்துள்ளது', true);
+            if (currentPage !== 'home') renderList(currentPage);
+        }, (error) => {
+            console.warn('Firebase sync error - using local/offline data:', error);
+            setSyncStatus('⚠️ ஆஃப்லைன் பயன்முறை (Offline)', false);
+        });
+
+        function syncCategoryToFirebase(category) {
+            notesRef.child(category).set(records[category]).catch((err) => {
+                console.warn('Firebase write failed, saved locally only:', err);
+                setSyncStatus('⚠️ சேமிப்பு உள்ளூரில் மட்டும் (Offline)', false);
+            });
+        }
+
+        window.onload = function() {
+            showPage('home');
+            registerServiceWorker();
+        };
+
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('./sw.js').catch((err) => {
+                        console.warn('Service worker registration failed:', err);
+                    });
+                });
+            }
+        }
+
+        function showPage(pageId) {
+            currentPage = pageId;
+            const pages = ['home', 'birth', 'gochara', 'research', 'general'];
+            pages.forEach(p => {
+                const el = document.getElementById(`page-${p}`);
+                if (el) el.classList.add('hidden');
+            });
+
+            const topNav = document.getElementById('topNavBar');
+            const pageTitle = document.getElementById('currentPageTitle');
+
+            if (pageId === 'home') {
+                document.getElementById('page-home').classList.remove('hidden');
+                topNav.classList.add('hidden');
+            } else {
+                document.getElementById(`page-${pageId}`).classList.remove('hidden');
+                topNav.classList.remove('hidden');
+
+                const pageTitles = {
+                    'birth': '👶 பிறந்த குறிப்புகள்',
+                    'gochara': '🔮 கோச்சாரக் குறிப்புகள்',
+                    'research': '📚 ஆராய்ச்சி குறிப்புகள்',
+                    'general': '📝 பொதுக் குறிப்புகள்'
+                };
+                pageTitle.innerText = pageTitles[pageId] || '';
+                renderList(pageId);
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function openForm(category, id = null) {
+            document.getElementById('field-category').value = category;
+            document.getElementById('field-id').value = id || '';
+            document.getElementById('astrologyForm').reset();
+            document.getElementById('field-content').innerHTML = '';
+
+            document.getElementById('field-group-name').classList.remove('hidden');
+            document.getElementById('birth-fields-group').classList.add('hidden');
+            document.getElementById('research-fields-group').classList.add('hidden');
+            document.getElementById('general-fields-group').classList.add('hidden');
+
+            const modalTitle = document.getElementById('modalTitle');
+
+            if (category === 'birth') {
+                modalTitle.innerHTML = `<i class="fa-solid fa-baby"></i> ${id ? 'பிறந்த குறிப்பை திருத்து' : 'புதிய பிறந்த குறிப்பு'}`;
+                document.getElementById('birth-fields-group').classList.remove('hidden');
+            } else if (category === 'gochara') {
+                modalTitle.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> ${id ? 'கோச்சாரக் குறிப்பை திருத்து' : 'புதிய கோச்சாரக் குறிப்பு'}`;
+            } else if (category === 'research') {
+                modalTitle.innerHTML = `<i class="fa-solid fa-book-bookmark"></i> ${id ? 'ஆராய்ச்சி குறிப்பை திருத்து' : 'புதிய ஆராய்ச்சி குறிப்பு'}`;
+                document.getElementById('field-group-name').classList.add('hidden');
+                document.getElementById('research-fields-group').classList.remove('hidden');
+            } else if (category === 'general') {
+                modalTitle.innerHTML = `<i class="fa-solid fa-note-sticky"></i> ${id ? 'பொதுக் குறிப்பை திருத்து' : 'புதிய பொதுக் குறிப்பு'}`;
+                document.getElementById('field-group-name').classList.add('hidden');
+                document.getElementById('general-fields-group').classList.remove('hidden');
+            }
+
+            if (id) {
+                const item = records[category].find(r => r.id === id);
+                if (item) {
+                    if (item.name) document.getElementById('field-name').value = item.name;
+                    if (item.dob) document.getElementById('field-dob').value = item.dob;
+                    if (item.time) document.getElementById('field-time').value = item.time;
+                    if (item.ampm) document.getElementById('field-ampm').value = item.ampm;
+                    if (item.place) document.getElementById('field-place').value = item.place;
+                    if (item.title) document.getElementById('field-title').value = item.title;
+                    if (item.researchName) document.getElementById('field-research-name').value = item.researchName;
+                    if (item.disease) document.getElementById('field-disease').value = item.disease;
+                    if (item.generalTitle) document.getElementById('field-general-title').value = item.generalTitle;
+                    if (item.content) document.getElementById('field-content').innerHTML = item.content;
+                }
+            }
+
+            document.getElementById('formModal').classList.remove('hidden');
+        }
+
+        function closeForm() {
+            document.getElementById('formModal').classList.add('hidden');
+        }
+
+        function applyStyle(command, value) {
+            document.execCommand(command, false, value);
+        }
+
+        /* FIXED FONT SIZE FUNCTIONALITY */
+        function applyFontSize(size) {
+            const editor = document.getElementById('field-content');
+            editor.focus();
+
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return;
+
+            const range = selection.getRangeAt(0);
+
+            // எடிட்டர் பகுதிக்காக மட்டும் தேர்வு செய்யப்படுகிறதா என்பதை உறுதி செய்ய
+            if (!editor.contains(range.commonAncestorContainer)) return;
+
+            // 1. செலக்ட் செய்யப்பட்ட எழுத்துக்களின் அளவை மாற்ற
+            if (!selection.isCollapsed) {
+                const contents = range.extractContents();
+                const span = document.createElement('span');
+                span.style.fontSize = size;
+                
+                span.appendChild(contents);
+                range.insertNode(span);
+
+                selection.removeAllRanges();
+                const newRange = document.createRange();
+                newRange.selectNodeContents(span);
+                selection.addRange(newRange);
+            } 
+            // 2. எழுத்துக்களை செலக்ட் செய்யாமல் அளவை மாற்றிவிட்டு புதிதாக டைப் செய்ய
+            else {
+                const span = document.createElement('span');
+                span.style.fontSize = size;
+                
+                const zeroWidthSpace = document.createTextNode('\u200B');
+                span.appendChild(zeroWidthSpace);
+                
+                range.insertNode(span);
+
+                const newRange = document.createRange();
+                newRange.setStart(span, 1);
+                newRange.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+            }
+        }
+
+        function applyFontFamily(fontName) {
+            const editor = document.getElementById('field-content');
+            editor.focus();
+
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return;
+
+            const range = selection.getRangeAt(0);
+            if (!editor.contains(range.commonAncestorContainer)) return;
+
+            if (!selection.isCollapsed) {
+                const selectedText = range.extractContents();
+                const span = document.createElement('span');
+                span.style.fontFamily = fontName;
+                span.appendChild(selectedText);
+                range.insertNode(span);
+            } else {
+                const span = document.createElement('span');
+                span.style.fontFamily = fontName;
+                const zeroWidthSpace = document.createTextNode('\u200B');
+                span.appendChild(zeroWidthSpace);
+                range.insertNode(span);
+
+                const newRange = document.createRange();
+                newRange.setStart(span, 1);
+                newRange.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+            }
+        }
+
+        function addCustomFont(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const fontName = 'CustomFont_' + Date.now();
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const fontData = e.target.result;
+                const newFont = new FontFace(fontName, fontData);
+
+                newFont.load().then(function(loadedFont) {
+                    document.fonts.add(loadedFont);
+                    customFonts.push({ name: file.name.split('.')[0], fontValue: fontName });
+
+                    const select = document.getElementById('font-family-select');
+                    const option = document.createElement('option');
+                    option.value = fontName;
+                    option.innerText = `✨ ${file.name.split('.')[0]}`;
+                    option.dataset.isCustom = "true";
+                    select.appendChild(option);
+                    select.value = fontName;
+
+                    alert(`'${file.name}' தமிழ் பாண்ட் வெற்றிகரமாக சேர்க்கப்பட்டது!`);
+                }).catch(function(err) {
+                    alert('பாண்ட் கோப்பை ஏற்றுவதில் பிழை: ' + err.message);
+                });
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        function deleteSelectedCustomFont() {
+            const select = document.getElementById('font-family-select');
+            const selectedOption = select.options[select.selectedIndex];
+
+            if (!selectedOption || !selectedOption.dataset.isCustom) {
+                alert('இயல்புநிலை (Default) பாண்ட்களை நீக்க முடியாது! நீங்கள் புதிதாகச் சேர்த்த பாண்ட்களை மட்டும் தேர்ந்தெடுக்கவும்.');
+                return;
+            }
+
+            if (confirm(`'${selectedOption.innerText.replace('✨ ', '')}' பாண்ட்டை நீக்க விரும்புகிறீர்களா?`)) {
+                const fontValue = selectedOption.value;
+                customFonts = customFonts.filter(f => f.fontValue !== fontValue);
+                select.remove(select.selectedIndex);
+                select.value = "Hind Madurai";
+                alert('பாண்ட் வெற்றிகரமாக நீக்கப்பட்டது.');
+            }
+        }
+
+        function saveRecord(e) {
+            e.preventDefault();
+            const category = document.getElementById('field-category').value;
+            const id = document.getElementById('field-id').value;
+
+            const content = document.getElementById('field-content').innerHTML;
+
+            const newRecord = {
+                id: id || 'rec_' + Date.now(),
+                createdAt: new Date().toISOString(),
+                content: content
+            };
+
+            if (category === 'birth') {
+                newRecord.name = document.getElementById('field-name').value.trim();
+                newRecord.dob = document.getElementById('field-dob').value.trim();
+                newRecord.time = document.getElementById('field-time').value.trim();
+                newRecord.ampm = document.getElementById('field-ampm').value;
+                newRecord.place = document.getElementById('field-place').value.trim();
+
+                if (!newRecord.name || !newRecord.dob) {
+                    alert('தயவுசெய்து பெயர் மற்றும் பிறந்த தேதியை உள்ளிடவும்.');
+                    return;
+                }
+            } else if (category === 'gochara') {
+                newRecord.name = document.getElementById('field-name').value.trim();
+                if (!newRecord.name) {
+                    alert('தயவுசெய்து பெயரை உள்ளிடவும்.');
+                    return;
+                }
+            } else if (category === 'research') {
+                newRecord.title = document.getElementById('field-title').value.trim();
+                newRecord.researchName = document.getElementById('field-research-name').value.trim();
+                newRecord.disease = document.getElementById('field-disease').value.trim();
+                if (!newRecord.title) {
+                    alert('தயவுசெய்து ஆராய்ச்சி தலைப்பை உள்ளிடவும்.');
+                    return;
+                }
+            } else if (category === 'general') {
+                newRecord.generalTitle = document.getElementById('field-general-title').value.trim();
+                if (!newRecord.generalTitle) {
+                    alert('தயவுசெய்து தலைப்பை உள்ளிடவும்.');
+                    return;
+                }
+            }
+
+            if (id) {
+                const idx = records[category].findIndex(r => r.id === id);
+                if (idx !== -1) records[category][idx] = newRecord;
+            } else {
+                records[category].unshift(newRecord);
+            }
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+            syncCategoryToFirebase(category);
+            closeForm();
+            renderList(category);
+        }
+
+        function renderList(category) {
+            const container = document.getElementById(`list-${category}`);
+            const searchVal = (document.getElementById(`search-${category}`)?.value || '').toLowerCase();
+
+            let filtered = records[category] || [];
+
+            if (searchVal) {
+                filtered = filtered.filter(item => {
+                    const nameMatch = item.name && item.name.toLowerCase().includes(searchVal);
+                    const titleMatch = item.title && item.title.toLowerCase().includes(searchVal);
+                    const genTitleMatch = item.generalTitle && item.generalTitle.toLowerCase().includes(searchVal);
+                    const diseaseMatch = item.disease && item.disease.toLowerCase().includes(searchVal);
+                    const resNameMatch = item.researchName && item.researchName.toLowerCase().includes(searchVal);
+                    const placeMatch = item.place && item.place.toLowerCase().includes(searchVal);
+                    return nameMatch || titleMatch || genTitleMatch || diseaseMatch || resNameMatch || placeMatch;
+                });
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 bg-white/80 rounded-xl border border-dashed border-gray-300">
+                        <i class="fa-solid fa-folder-open text-4xl text-gray-300 mb-2"></i>
+                        <p class="text-gray-500 font-semibold">பதிவுகள் எதுவும் இல்லை</p>
+                        <p class="text-xs text-gray-400 mt-1">புதிய பதிவை சேர்க்க மேலே உள்ள பட்டனை பயன்படுத்தவும்.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const themeConfig = {
+                birth: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-800', badgeBg: 'bg-amber-200 text-amber-900', btnBg: 'bg-amber-100 hover:bg-amber-200 text-amber-900' },
+                gochara: { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-800', badgeBg: 'bg-purple-200 text-purple-900', btnBg: 'bg-purple-100 hover:bg-purple-200 text-purple-900' },
+                research: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-800', badgeBg: 'bg-blue-200 text-blue-900', btnBg: 'bg-blue-100 hover:bg-blue-200 text-blue-900' },
+                general: { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', badgeBg: 'bg-emerald-200 text-emerald-900', btnBg: 'bg-emerald-100 hover:bg-emerald-200 text-emerald-900' }
+            };
+
+            const theme = themeConfig[category] || themeConfig.birth;
+
+            container.innerHTML = filtered.map(item => {
+                let cardTitle = '';
+                let cardSub = '';
+
+                if (category === 'birth') {
+                    cardTitle = item.name;
+                    cardSub = `🎂 ${item.dob} | ⏰ ${item.time} ${item.ampm} | 📍 ${item.place}`;
+                } else if (category === 'gochara') {
+                    cardTitle = item.name;
+                    cardSub = `🔮 கோச்சாரக் குறிப்புகள்`;
+                } else if (category === 'research') {
+                    cardTitle = item.title;
+                    cardSub = `👤 ${item.researchName || 'ஆராய்ச்சி'} ${item.disease ? '| 🩺 ' + item.disease : ''}`;
+                } else if (category === 'general') {
+                    cardTitle = item.generalTitle;
+                    cardSub = `📝 பொதுக் குறிப்புகள்`;
+                }
+
+                return `
+                    <div class="${theme.bg} p-5 rounded-2xl border ${theme.border} shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-start gap-2">
+                                <h3 class="font-bold text-lg text-gray-800">${cardTitle}</h3>
+                                <span class="text-[10px] ${theme.badgeBg} font-semibold px-2 py-0.5 rounded-full shrink-0">
+                                    ${new Date(item.createdAt).toLocaleDateString('ta-IN')}
+                                </span>
+                            </div>
+                            <p class="text-xs font-semibold ${theme.text} mt-1">${cardSub}</p>
+                            
+                            <div class="mt-3 text-xs text-gray-700 line-clamp-3 leading-relaxed border-t border-black/5 pt-2">
+                                ${item.content ? item.content.replace(/<[^>]*>?/gm, ' ') : 'குறிப்புகள் இல்லை...'}
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-black/5">
+                            <button onclick="viewDetails('${category}', '${item.id}')" class="px-3 py-1.5 ${theme.btnBg} rounded-lg text-xs font-bold transition flex items-center gap-1">
+                                <i class="fa-solid fa-eye"></i> விவரம் / PDF
+                            </button>
+                            <div class="flex items-center gap-1">
+                                <button onclick="openForm('${category}', '${item.id}')" class="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg text-sm" title="திருத்து (Edit)">
+                                    ✏️
+                                </button>
+                                <button onclick="deleteRecord('${category}', '${item.id}')" class="p-1.5 text-red-600 hover:bg-red-100 rounded-lg text-sm" title="நீக்கு (Delete)">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function deleteRecord(category, id) {
+            if (confirm('இந்த பதிவை நிச்சயமாக நீக்க விரும்புகிறீர்களா?')) {
+                records[category] = records[category].filter(r => r.id !== id);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+                syncCategoryToFirebase(category);
+                renderList(category);
+            }
+        }
+
+        let currentViewItem = null;
+
+        function viewDetails(category, id) {
+            const item = records[category].find(r => r.id === id);
+            if (!item) return;
+
+            currentViewItem = item;
+
+            const box = document.getElementById('pdf-content-box');
+            let headerHTML = '';
+
+            if (category === 'birth') {
+                headerHTML = `
+                    <div style="border-bottom: 2px solid #b45309; padding-bottom: 12px; margin-bottom: 16px;">
+                        <h2 style="font-size: 22px; font-weight: bold; color: #78350f; margin-bottom: 6px;">${item.name} - பிறந்த ஜாதகக் குறிப்புகள்</h2>
+                        <div style="font-size: 14px; color: #374151; line-height: 1.6;">
+                            <p><strong>பிறந்த தேதி:</strong> ${item.dob}</p>
+                            <p><strong>பிறந்த நேரம்:</strong> ${item.time} ${item.ampm}</p>
+                            <p><strong>பிறந்த இடம்:</strong> ${item.place}</p>
+                        </div>
+                    </div>
+                `;
+            } else if (category === 'gochara') {
+                headerHTML = `
+                    <div style="border-bottom: 2px solid #7e22ce; padding-bottom: 12px; margin-bottom: 16px;">
+                        <h2 style="font-size: 22px; font-weight: bold; color: #581c87; margin-bottom: 6px;">${item.name} - கோச்சாரக் குறிப்புகள்</h2>
+                    </div>
+                `;
+            } else if (category === 'research') {
+                headerHTML = `
+                    <div style="border-bottom: 2px solid #1d4ed8; padding-bottom: 12px; margin-bottom: 16px;">
+                        <h2 style="font-size: 22px; font-weight: bold; color: #1e3a8a; margin-bottom: 6px;">ஆராய்ச்சி தலைப்பு: ${item.title}</h2>
+                        <div style="font-size: 14px; color: #374151; line-height: 1.6;">
+                            ${item.researchName ? `<p><strong>ஆராய்ச்சியாளர்/நபர்:</strong> ${item.researchName}</p>` : ''}
+                            ${item.disease ? `<p><strong>நோய் வகை:</strong> ${item.disease}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+            } else if (category === 'general') {
+                headerHTML = `
+                    <div style="border-bottom: 2px solid #047857; padding-bottom: 12px; margin-bottom: 16px;">
+                        <h2 style="font-size: 22px; font-weight: bold; color: #064e3b; margin-bottom: 6px;">தலைப்பு: ${item.generalTitle}</h2>
+                    </div>
+                `;
+            }
+
+            box.innerHTML = `
+                ${headerHTML}
+                <div style="margin-top: 15px;">
+                    <h3 style="font-size: 16px; font-weight: bold; color: #1f2937; margin-bottom: 8px;">குறிப்புகள்:</h3>
+                    <div class="formatted-text-content" style="font-size: 15px; color: #111827; line-height: 1.8;">
+                        ${item.content || 'குறிப்புகள் எதுவும் பதிவு செய்யப்படவில்லை.'}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('viewModal').classList.remove('hidden');
+        }
+
+        function closeViewModal() {
+            document.getElementById('viewModal').classList.add('hidden');
+        }
+
+        // Native Print Function
+        function downloadPDF() {
+            window.print();
+        }
+    </script>
+</body>
+</html>

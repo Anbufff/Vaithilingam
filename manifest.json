@@ -1,0 +1,26 @@
+{
+  "name": "ஜோதிட குறிப்புகள் - Astrology Notes",
+  "short_name": "ஜோதிடம்",
+  "description": "உங்கள் ஜோதிட ஆய்வுகள் மற்றும் ஜாதக பதிவேடு",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "./index.html",
+  "display": "standalone",
+  "background_color": "#fdfbf7",
+  "theme_color": "#b45309",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
